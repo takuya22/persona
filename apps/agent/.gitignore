@@ -1,0 +1,6 @@
+.venv
+.env*
+
+sessions.db
+
+persona_agent/__pycache__/
