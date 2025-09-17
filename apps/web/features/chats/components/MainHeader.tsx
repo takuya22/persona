@@ -1,3 +1,5 @@
+import { Chat } from "../types/chats.types"
+
 export const MainHeader: React.FC<{
   selected: Chat | null,
   switchPersona: (persona: string) => void

@@ -1,12 +1,15 @@
 "use client";
+import { postChat } from "@/features/chats/apis/chats";
 import { ChatList } from "@/features/chats/components/ChatList";
-import { ChatSearchBox } from "@/features/chats/components/chatSearchBox";
+import { ChatSearchBox } from "@/features/chats/components/ChatSearchBox";
 import { Composer } from "@/features/chats/components/Composer";
 import { Footer } from "@/features/chats/components/Footer";
 import { MainHeader } from "@/features/chats/components/MainHeader";
 import { Messages } from "@/features/chats/components/Messages";
 import { SideHeader } from "@/features/chats/components/SideHeader";
-import { defaultSeed, loadChats, now, saveChats, timeAgo, uid } from "@/features/chats/utils/chats";
+import { AIResponseData, Chat, Message } from "@/features/chats/types/chats.types";
+import { defaultSeed, deleteStartChat, loadChats, loadStartChat, now, saveChats, timeAgo, uid } from "@/features/chats/utils/chats";
+import { createSession } from "@/features/session/apis/session";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 /**
@@ -77,15 +80,24 @@ export default function ChatPage() {
 
   // 初回マウント時にlocalStorageから読み込む
   useEffect(() => {
-    const saved = typeof window !== "undefined" ? loadChats() : [];
-    if (saved.length) {
-      setChats(saved);
-      setSelectedId(saved[0]?.id ?? "");
-    } else {
-      const seed = defaultSeed();
-      setChats(seed);
-      setSelectedId(seed[0]?.id ?? "");
-      saveChats(seed);
+    // const saved = typeof window !== "undefined" ? loadChats() : [];
+    // if (saved.length) {
+    //   setChats(saved);
+    //   setSelectedId(saved[0]?.id ?? "");
+    // } else {
+    //   const seed = defaultSeed();
+    //   setChats(seed);
+    //   setSelectedId(seed[0]?.id ?? "");
+    //   saveChats(seed);
+    // }
+
+    const startChat = typeof window !== "undefined" ? loadStartChat() : "";
+    console.log(startChat + ":storage")
+    if (startChat.length > 0) {
+      // const chatId = createChat();
+      console.log(startChat);
+      startSend(startChat);
+      deleteStartChat();
     }
   }, []);
 
@@ -101,9 +113,9 @@ export default function ChatPage() {
   }, [selected?.messages.length, isTyping]);
 
   // Handlers
-  const createChat = () => {
+  const createChat = (sessionId: string): string => {
     const c: Chat = {
-      id: uid(),
+      id: sessionId,
       title: "新しいチャット",
       persona: "PM",
       updatedAt: now(),
@@ -113,6 +125,7 @@ export default function ChatPage() {
     setChats(next);
     setSelectedId(c.id);
     setTimeout(() => inputRef.current?.focus(), 0);
+    return c.id;
   };
 
   const removeChat = (id: string) => {
@@ -146,24 +159,337 @@ export default function ChatPage() {
     );
   };
 
+  // ユーティリティ: ReadableStreamをテキストとして取得
+  async function streamToText(stream: ReadableStream<Uint8Array>): Promise<string> {
+    const reader = stream.getReader();
+    let result = "";
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      result += new TextDecoder().decode(value);
+      console.log(result);
+    }
+    return result;
+  }
+
+  // データ抽出用のユーティリティ関数
+  const extractMessageContent = (data: AIResponseData | string): string => {
+    if (typeof data === 'string') {
+      return data;
+    }
+    
+    try {
+      // content.parts[0].text からメッセージ内容を抽出
+      return data.content?.parts?.[0]?.text || '';
+    } catch (error) {
+      console.warn('Failed to extract message content:', error);
+      return JSON.stringify(data);
+    }
+  };
+
+  // 修正されたストリーム完了判定
+  const isStreamComplete = (data: AIResponseData | string): boolean => {
+    if (typeof data === 'string') {
+      return data === '[DONE]' || data === 'STREAM_END';
+    }
+    
+    // ReviewSynthesisAgentの出現で全体完了と判定
+    return data.author === 'ReviewSynthesisAgent';
+  };
+
+  // 作者情報の取得
+  const getAuthor = (data: AIResponseData): string => {
+    return data.author || 'AI';
+  };
+
+  // トークン使用量の取得
+  const getTokenUsage = (data: AIResponseData): number => {
+    return data.usage_metadata?.total_token_count || 0;
+  };
+
+
+  // SSEストリームを解析してリアルタイムでメッセージを更新する関数
+  async function processSSEStream(
+    stream: ReadableStream<Uint8Array>,
+    onDataReceived: (content: string, data: AIResponseData) => void,
+    onComplete: () => void
+  ) {
+    const reader = stream.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+    let messageCount = 0;
+    const receivedAuthors = new Set(); // 受信したauthorを追跡
+    let synthesisReceived = false; // ReviewSynthesisAgent受信フラグ
+
+    try {
+      console.log('🔄 Starting SSE stream processing...');
+      while (true) {
+        const { value, done } = await reader.read();
+        
+        if (done) {
+          onComplete();
+          break;
+        }
+
+        // バッファに新しいチャンクを追加
+        buffer += decoder.decode(value, { stream: true });
+        // 行ごとに分割して処理
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || ""; // 最後の不完全な行は次回に持ち越し
+
+        for (const line of lines) {
+          const trimmed = line.trim();
+          if (trimmed.startsWith('data: ')) {
+            const dataStr = trimmed.slice(6);
+            console.log('SSE data:', dataStr);
+            
+            // 明示的な終了シグナルのみでストリームを終了
+            if (dataStr === '[DONE]' || dataStr === 'STREAM_END') {
+              console.log('🔚 Received explicit end signal:', dataStr);
+              onComplete();
+              return;
+            }
+
+            if (dataStr) {
+              try {
+                const data: AIResponseData = JSON.parse(dataStr);
+                const content = extractMessageContent(data);
+                
+                messageCount++;
+                receivedAuthors.add(data.author);
+                
+                console.log(`📨 Message ${messageCount} from ${data.author}:`, {
+                  branch: data.branch,
+                  content: content.substring(0, 100) + '...',
+                  finishReason: data.finish_reason,
+                  timestamp: data.timestamp
+                });
+                
+                if (content) {
+                  onDataReceived(content, data);
+                }
+              
+                // ReviewSynthesisAgentが来たらストリーム完了
+                if (data.author === 'ReviewSynthesisAgent') {
+                  console.log('🏁 ReviewSynthesisAgent received - stream complete!');
+                  synthesisReceived = true;
+                  
+                  // 少し待ってからストリーム終了（最後のメッセージを確実に処理）
+                  setTimeout(() => {
+                    onComplete();
+                  }, 100);
+                  return;
+                }
+                
+              } catch (e) {
+                console.warn('❌ Failed to parse JSON:', e);
+                console.log('🔍 Raw data:', dataStr.substring(0, 200));
+                // JSON解析に失敗してもストリームを継続
+              }
+            }
+          } else if (trimmed.startsWith(':')) {
+            console.log('💭 SSE keepalive:', trimmed);
+          } else if (trimmed === '') {
+            // 空行は無視
+          } else {
+            console.log('❓ Unknown format:', trimmed.substring(0, 100));
+          }
+        }
+      }
+    } catch (error) {
+      console.error('SSE stream processing error:', error);
+      onComplete();
+    } finally {
+      reader.releaseLock();
+    }
+  }
+
+  const startSend = async (input: string) => {
+    if (!input.trim()) return;
+    const userMsg: Message = { id: uid(), role: "user", content: input.trim(), createdAt: now() };
+    setInput("");
+    setIsSending(true);
+    setIsTyping(true);
+
+    // Simulate assistant typing
+    const session = await createSession();
+    const chatId = createChat(session.output.id);
+    setChats((prev) =>
+      prev.map((c) => (c.id === chatId ? { ...c, messages: [...c.messages, userMsg], updatedAt: now() } : c))
+    );
+
+    try {
+      const stream = await postChat({ sessionId: session.output.id, newMessage: { parts: [ { text: input.trim() } ] } });
+
+      let authorCount = new Set();
+      let reviewerCount = 0;
+      let synthesisReceived = false;
+
+      // SSEストリームを処理
+      await processSSEStream(
+        stream,
+        // 各data行を受信したときの処理
+        (content: string, data: AIResponseData) => {
+          authorCount.add(data.author);
+        
+          if (data.author.includes('Reviewer')) {
+            reviewerCount++;
+          } else if (data.author === 'ReviewSynthesisAgent') {
+            synthesisReceived = true;
+          }
+
+          console.log(`📝 ${data.author} (Reviewers: ${reviewerCount}, Synthesis: ${synthesisReceived})`);
+
+          if (content) {
+            // 各data行ごとに新しいアシスタントメッセージを作成
+            const newAssistantMsg: Message = {
+              id: uid(),
+              role: "assistant", 
+              content: content,
+              createdAt: now(),
+            };
+
+            // chatsの配列に新しいメッセージを追加
+            setChats((prev) =>
+              prev.map((c) => 
+                c.id === chatId 
+                  ? {
+                      ...c,
+                      messages: [...c.messages, newAssistantMsg], // 配列の末尾に新しいメッセージを追加
+                      updatedAt: now()
+                    }
+                  : c
+              )
+            );
+          }
+        },
+        // ストリーム完了時の処理
+        () => {
+          console.log('Stream completed');
+          setIsTyping(false);
+          setIsSending(false);
+        }
+      );
+    } catch (error) {
+      console.error('Chat error:', error);
+      
+      // エラーメッセージも新しいメッセージとして追加
+      const errorMsg: Message = {
+        id: uid(),
+        role: "assistant",
+        content: `エラーが発生しました: ${error.message}`,
+        createdAt: now()
+      };
+      
+      setChats((prev) =>
+        prev.map((c) => 
+          c.id === chatId 
+            ? {
+                ...c,
+                messages: [...c.messages, errorMsg], // エラーメッセージも新規追加
+                updatedAt: now()
+              }
+            : c
+        )
+      );
+    
+      setIsTyping(false);
+      setIsSending(false);
+    }
+  };
+
   const send = async () => {
     if (!selected || !input.trim() || isSending) return;
     const userMsg: Message = { id: uid(), role: "user", content: input.trim(), createdAt: now() };
     setInput("");
     setIsSending(true);
+    setIsTyping(true);
     setChats((prev) =>
       prev.map((c) => (c.id === selected.id ? { ...c, messages: [...c.messages, userMsg], updatedAt: now() } : c))
     );
 
-    // Simulate assistant typing
-    setIsTyping(true);
-    const reply = await mockRespond(userMsg.content, selected.persona);
-    const aiMsg: Message = { id: uid(), role: "assistant", content: reply, createdAt: now() };
-    setChats((prev) =>
-      prev.map((c) => (c.id === selected.id ? { ...c, messages: [...c.messages, aiMsg], updatedAt: now() } : c))
-    );
-    setIsTyping(false);
-    setIsSending(false);
+    try {
+      console.log("Creating session...");
+      console.log(selected.id);
+      console.log(input.trim());
+      console.log(chats);
+      const stream = await postChat({ sessionId: selected.id, newMessage: { parts: [ { text: input.trim() } ] } });
+
+      let authorCount = new Set();
+      let reviewerCount = 0;
+      let synthesisReceived = false;
+
+      // SSEストリームを処理
+      await processSSEStream(
+        stream,
+        // 各data行を受信したときの処理
+        (content: string, data: AIResponseData) => {
+          authorCount.add(data.author);
+        
+          if (data.author.includes('Reviewer')) {
+            reviewerCount++;
+          } else if (data.author === 'ReviewSynthesisAgent') {
+            synthesisReceived = true;
+          }
+
+          console.log(`📝 ${data.author} (Reviewers: ${reviewerCount}, Synthesis: ${synthesisReceived})`);
+
+          if (content) {
+            // 各data行ごとに新しいアシスタントメッセージを作成
+            const newAssistantMsg: Message = {
+              id: uid(),
+              role: "assistant", 
+              content: content,
+              createdAt: now(),
+            };
+
+            // chatsの配列に新しいメッセージを追加
+            setChats((prev) =>
+              prev.map((c) => 
+                c.id === selected.id 
+                  ? {
+                      ...c,
+                      messages: [...c.messages, newAssistantMsg], // 配列の末尾に新しいメッセージを追加
+                      updatedAt: now()
+                    }
+                  : c
+              )
+            );
+          }
+        },
+        // ストリーム完了時の処理
+        () => {
+          console.log('Stream completed');
+          setIsTyping(false);
+          setIsSending(false);
+        }
+      );
+    } catch (error) {
+      console.error('Chat error:', error);
+      
+      // エラーメッセージも新しいメッセージとして追加
+      const errorMsg: Message = {
+        id: uid(),
+        role: "assistant",
+        content: `エラーが発生しました: ${error.message}`,
+        createdAt: now()
+      };
+      
+      setChats((prev) =>
+        prev.map((c) => 
+          c.id === selected.id 
+            ? {
+                ...c,
+                messages: [...c.messages, errorMsg], // エラーメッセージも新規追加
+                updatedAt: now()
+              }
+            : c
+        )
+      );
+    
+      setIsTyping(false);
+      setIsSending(false);
+    }
   };
 
   const onKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {

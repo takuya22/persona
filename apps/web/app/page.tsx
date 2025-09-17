@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { Search, Send, Sparkles, Mic, Plus, PlayCircle, ChevronRight } from "lucide-react";
 import {
@@ -17,6 +17,11 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { createSession } from "@/features/session/apis/session";
 import { useRouter } from "next/navigation";
+import { saveStartChat } from "@/features/chats/utils/chats";
+import SignIn from "@/features/auth/components/SignIn";
+import { SessionProvider } from "next-auth/react";
+import { SignOut } from "@/features/auth/components/SignOut";
+import { Header } from "@/features/top/components/Header";
 
 /**
  * Persona Interview – Simple TOP
@@ -49,34 +54,35 @@ export default function Page() {
   const [query, setQuery] = useState("");
   const [activePersona, setActivePersona] = useState<string | null>(null);
   const router = useRouter();
+  const buttonRef = useRef<HTMLButtonElement>(null);
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    saveStartChat(query);
     router.push('/chats');
-    const test = await createSession({ userId: "anon" });
-    console.log(test);
   };
 
+  // Ctrl+Enter で開始ボタンを押す
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+        // textareaがフォーカスされている時のみ
+        const active = document.activeElement;
+        if (active && active.tagName === "TEXTAREA") {
+          e.preventDefault();
+          if (buttonRef.current && !buttonRef.current.disabled) {
+            buttonRef.current.click();
+          }
+        }
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, []);
+
   return (
+    <SessionProvider>
     <div className="min-h-screen bg-gradient-to-b from-white to-slate-50 text-slate-900">
-      {/* Header */}
-      <header className="sticky top-0 z-50 backdrop-blur supports-[backdrop-filter]:bg-white/70 bg-white/60 border-b">
-        <div className="mx-auto max-w-7xl px-4 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="size-8 rounded-2xl bg-slate-900 text-white grid place-items-center font-bold">Pi</div>
-            <span className="font-semibold tracking-tight">Persona Interview</span>
-            <Badge variant="secondary" className="ml-2">Beta</Badge>
-          </div>
-          <nav className="hidden md:flex items-center gap-6 text-sm text-slate-600">
-            <a href="#personas" className="hover:text-slate-900">Personas</a>
-            <a href="#features" className="hover:text-slate-900">Features</a>
-            <a href="#how" className="hover:text-slate-900">How it works</a>
-          </nav>
-          <div className="flex items-center gap-2">
-            <Button variant="ghost" className="hidden sm:inline-flex">ログイン</Button>
-            <Button className="rounded-2xl">無料で試す</Button>
-          </div>
-        </div>
-      </header>
+      <Header />
 
       {/* Hero */}
       <section className="mx-auto max-w-4xl px-4 pt-14 md:pt-24">
@@ -119,7 +125,13 @@ export default function Page() {
                           className="min-h-24 resize-none rounded-2xl pr-24"
                         />
                         <div className="absolute right-2 bottom-2 flex items-center gap-2">
-                          <Button size="sm" className="rounded-2xl" onClick={handleSubmit} disabled={!query.trim()}>
+                          <Button
+                            size="sm"
+                            className="rounded-2xl"
+                            onClick={handleSubmit}
+                            disabled={!query.trim()}
+                            ref={buttonRef}
+                          >
                             <Send className="mr-1 size-4" /> 開始
                           </Button>
                         </div>
@@ -255,5 +267,6 @@ export default function Page() {
         </div>
       </footer>
     </div>
+    </SessionProvider>
   );
 }

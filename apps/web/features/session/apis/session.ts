@@ -1,12 +1,11 @@
 // apps/web/lib/api/session.ts
 
-import { CreateSessionRequest, CreateSessionResponse } from "@/features/session/types/session.types";
+import { CreateSessionResponse } from "@/features/session/types/session.types";
 
-export const createSession = async (args: CreateSessionRequest): Promise<CreateSessionResponse> => {
+export const createSession = async (): Promise<CreateSessionResponse> => {
   const res = await fetch("/api/session", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(args),
   });
   if (!res.ok) {
     const msg = await res.text().catch(() => res.statusText);

@@ -1,3 +1,5 @@
+import { Chat } from "../types/chats.types";
+
 export const uid = () => Math.random().toString(36).slice(2, 10);
 
 export const now = () => Date.now();
@@ -11,7 +13,7 @@ export const timeAgo = (t: number) => {
   return `${d.getMonth() + 1}/${d.getDate()}`;
 };
 
-export const STORAGE_KEY = "persona-interview-chats-v1";
+const STORAGE_KEY = "persona-interview-chats-v1";
 
 export const loadChats = (): Chat[] => {
   try {
@@ -27,6 +29,27 @@ export const loadChats = (): Chat[] => {
 export const saveChats = (chats: Chat[]) => {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(chats));
 };
+
+const START_CHAT_KEY = "persona-start-chat"
+
+export const saveStartChat = (input: string) => {
+  localStorage.setItem(START_CHAT_KEY, input);
+}
+
+export const loadStartChat = (): string => {
+  try {
+    const text = localStorage.getItem(START_CHAT_KEY);
+    if (!text) return ""
+    return text;
+  } catch {
+    return ""
+  }
+}
+
+export const deleteStartChat = (): void => {
+  localStorage.removeItem(START_CHAT_KEY)
+  return
+}
 
 export const defaultSeed = (): Chat[] => {
   const c1: Chat = {

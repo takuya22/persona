@@ -1,7 +1,3 @@
-export interface CreateSessionRequest {
-  userId: string
-}
-
 export interface CreateSessionResponse {
   output: SessionResponse
 }

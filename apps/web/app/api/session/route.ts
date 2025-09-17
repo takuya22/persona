@@ -1,10 +1,11 @@
+import { auth } from "@/app/auth"
 import { getAccessToken } from "@/lib/gcp/auth"
 import { NextRequest } from "next/server"
 
 export async function POST(req: NextRequest) {
-	const { userId } = await req.json()
-
-	if (!userId) {
+	const session = await auth()
+	console.log("Session:", session)
+	if (!session) {
 		return new Response("Unauthorized", { status: 401 })
 	}
 
@@ -12,7 +13,7 @@ export async function POST(req: NextRequest) {
 	console.log("Session API URL:", url)
 	const body = {
 		class_method: "async_create_session",
-		input: { user_id: userId }
+		input: { user_id: session.user?.id },
 	}
 	console.log("Request body:", body)
 	

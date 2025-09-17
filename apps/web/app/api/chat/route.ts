@@ -1,12 +1,19 @@
 // apps/web/app/api/chat/route.ts
 import { NextRequest } from "next/server"
 import { getAccessToken } from "@/lib/gcp/auth"
+import { auth } from "@/app/auth"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 
 export async function POST(req: NextRequest) {
-  const { userId, sessionId, newMessage } = await req.json()
+  const session = await auth()
+  if (!session) {
+    return new Response("Unauthorized", { status: 401 })
+  }
+
+
+  const { sessionId, newMessage } = await req.json()
   const text = newMessage?.parts?.[0]?.text ?? ""
   const sid = sessionId || crypto.randomUUID()
   const token = await getAccessToken()
@@ -22,7 +29,7 @@ export async function POST(req: NextRequest) {
   const url = process.env.VERTEX_AI_STREAM_QUERY_API_URL!
   const body = {
     class_method: "async_stream_query",
-    input: { user_id: userId, session_id: sid, message: text },
+    input: { user_id: session.user?.id, session_id: sid, message: text },
   }
 
   const upstream = await fetch(url, {
@@ -44,37 +51,68 @@ export async function POST(req: NextRequest) {
 
   const reader = upstream.body.getReader()
   const encoder = new TextEncoder()
-  let leftover = ""
+  const decoder = new TextDecoder()
+
+  let buffer = "";                    // 生テキストのバッファ
+  let sseEventLines: string[] = [];   // 1イベント分の行を貯める
+
+  let controllerRef: ReadableStreamDefaultController | null = null
+  let keepalive: ReturnType<typeof setInterval> | null = null
+  
+  function flushBufferAsEvents(chunk: string, controller: ReadableStreamDefaultController) {
+    const lines = chunk.split(/\r?\n/)
+    for (const raw of lines) {
+      const line = raw.trimEnd()
+      if (line === "") {
+        if (sseEventLines.length) {
+          controller.enqueue(encoder.encode(sseEventLines.join("\n") + "\n\n"))
+          sseEventLines = []
+        }
+        continue
+      }
+      if (line.startsWith("data:") || line.startsWith(":") || line.startsWith("event:") || line.startsWith("id:")) {
+        sseEventLines.push(line)
+      } else {
+        controller.enqueue(encoder.encode(`data: ${line}\n\n`)) // NDJSON 1行→1イベント
+      }
+    }
+  }
 
   const stream = new ReadableStream({
+    start(controller) {
+      controllerRef = controller
+      // keepalive は start でセット（controller を確実に取得できる）
+      keepalive = setInterval(() => {
+        try {
+          controllerRef?.enqueue(encoder.encode(`:keepalive ${Date.now()}\n\n`))
+        } catch {}
+      }, 15_000)
+    },
     async pull(controller) {
+      // 念のため pull 側でも参照を保持
+      controllerRef = controller
+
       const { value, done } = await reader.read()
       if (done) {
-        if (leftover.trim()) {
-          controller.enqueue(encoder.encode(`data: ${leftover}\n\n`))
-        }
+        buffer += decoder.decode() // flush
+        if (buffer) flushBufferAsEvents(buffer, controller)
+        if (keepalive) clearInterval(keepalive)
         controller.close()
         return
       }
-      const chunk = new TextDecoder().decode(value)
-      const text = leftover + chunk
-      const lines = text.split(/\r?\n/)
-      leftover = lines.pop() ?? ""
 
-      for (const line of lines) {
-        const trimmed = line.trim()
-        if (!trimmed) continue
-        // すでに data: を含む（純SSE）の場合はそのまま流す
-        if (trimmed.startsWith("data:")) {
-          controller.enqueue(encoder.encode(trimmed + "\n\n"))
-        } else if (trimmed.startsWith(":")) {
-          // keepalive/comment はそのままSSEとして通す
-          controller.enqueue(encoder.encode(trimmed + "\n\n"))
-        } else {
-          // NDJSON/プレーンJSON行 → SSE化
-          controller.enqueue(encoder.encode(`data: ${trimmed}\n\n`))
-        }
+      buffer += decoder.decode(value, { stream: true })
+      const lastNL = buffer.lastIndexOf("\n")
+      if (lastNL !== -1) {
+        const chunk = buffer.slice(0, lastNL + 1)
+        buffer = buffer.slice(lastNL + 1)
+        flushBufferAsEvents(chunk, controller)
       }
+    },
+    cancel() {
+      try { reader.cancel() } catch {}
+      if (keepalive) clearInterval(keepalive)
+      controllerRef = null
     },
   })
 
