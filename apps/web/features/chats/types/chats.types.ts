@@ -22,6 +22,20 @@ export type ChatRequest = {
   };
 };
 
+export type SaveChatRequest = {
+  sessionId: string;
+  title: string;
+  firstMessage: string;
+};
+
+export type FetchChatsResponse = {
+  id: string;
+  session_id: string;
+  title: string;
+  first_message: string;
+  updated_at: string;
+}
+
 // ストリームなのでレスポンス型は用途に応じて定義
 export type ChatResponse = unknown;
 

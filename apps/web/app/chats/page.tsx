@@ -1,5 +1,5 @@
 "use client";
-import { postChat } from "@/features/chats/apis/chats";
+import { fetchChats, postChat, saveChat2 } from "@/features/chats/apis/chats";
 import { ChatList } from "@/features/chats/components/ChatList";
 import { ChatSearchBox } from "@/features/chats/components/ChatSearchBox";
 import { Composer } from "@/features/chats/components/Composer";
@@ -80,6 +80,21 @@ export default function ChatPage() {
 
   // 初回マウント時にlocalStorageから読み込む
   useEffect(() => {
+    fetchChats().then((fetched) => {
+      if (fetched.length) {
+        console.log(fetched);
+        const loaded = fetched.map((c) => ({
+          id: c.session_id,
+          title: c.title,
+          persona: "PM",
+          messages: [
+            { id: uid(), role: "system", content: `ペルソナ: PM`, createdAt: new Date(c.updated_at).getTime() },
+            { id: uid(), role: "user", content: c.first_message, createdAt: new Date(c.updated_at).getTime() }
+          ],
+          updatedAt: new Date(c.updated_at).getTime(),
+        }));
+      }
+    });
     // const saved = typeof window !== "undefined" ? loadChats() : [];
     // if (saved.length) {
     //   setChats(saved);
@@ -94,7 +109,6 @@ export default function ChatPage() {
     const startChat = typeof window !== "undefined" ? loadStartChat() : "";
     console.log(startChat + ":storage")
     if (startChat.length > 0) {
-      // const chatId = createChat();
       console.log(startChat);
       startSend(startChat);
       deleteStartChat();
@@ -314,6 +328,11 @@ export default function ChatPage() {
     // Simulate assistant typing
     const session = await createSession();
     const chatId = createChat(session.output.id);
+    saveChat2({
+      sessionId: session.output.id,
+      title: "新しいチャット",
+      firstMessage: input.trim(),
+    });
     setChats((prev) =>
       prev.map((c) => (c.id === chatId ? { ...c, messages: [...c.messages, userMsg], updatedAt: now() } : c))
     );
