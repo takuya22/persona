@@ -35,6 +35,7 @@ export const saveChat2 = async (
     const msg = await res.text().catch(() => res.statusText);
     throw new Error(`Failed to save chat: ${msg}`);
   }
+  console.log("Save chat response:", res);
 
   return res;
 };
@@ -49,6 +50,45 @@ export const fetchChats = async (): Promise<FetchChatsResponse[]> => {
     const msg = await res.text().catch(() => res.statusText);
     throw new Error(`Failed to fetch chats: ${msg}`);
   }
-  const data = await res.json();
-  return data as FetchChatsResponse[];
+  
+  const raw = await res.json();
+  const rows = Array.isArray(raw) ? raw : raw?.data ?? [];
+  const mapped = rows.map((r): FetchChatsResponse => ({
+    id: String(r.id),
+    session_id: r.session_id,
+    title: r.title ?? "",
+    first_message: r.first_message ?? "",
+    updated_at: new Date(r.updated_at).toISOString(),
+  }));
+
+  return mapped;
 }
+
+export const deleteChat = async (sessionId: string): Promise<void> => {
+  const res = await fetch(`/api/supabase/chats?sessionId=${encodeURIComponent(sessionId)}`, {
+    method: "DELETE",
+    headers: { "Content-Type": "application/json" },
+  });
+
+  if (!res.ok) {
+    const msg = await res.text().catch(() => res.statusText);
+    throw new Error(`Failed to delete chat: ${msg}`);
+  }
+  
+  console.log("Delete chat response:", res);
+};
+
+export const updateChatTitle = async (sessionId: string, title: string): Promise<void> => {
+  const res = await fetch(`/api/supabase/chats?sessionId=${encodeURIComponent(sessionId)}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ title }),
+  });
+
+  if (!res.ok) {
+    const msg = await res.text().catch(() => res.statusText);
+    throw new Error(`Failed to update chat title: ${msg}`);
+  }
+  
+  console.log("Update chat title response:", res);
+};

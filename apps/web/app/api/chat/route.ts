@@ -12,7 +12,6 @@ export async function POST(req: NextRequest) {
     return new Response("Unauthorized", { status: 401 })
   }
 
-
   const { sessionId, newMessage } = await req.json()
   const text = newMessage?.parts?.[0]?.text ?? ""
   const sid = sessionId || crypto.randomUUID()

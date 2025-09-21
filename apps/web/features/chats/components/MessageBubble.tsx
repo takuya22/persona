@@ -1,7 +1,7 @@
 import { Avatar } from "@radix-ui/react-avatar";
-import { timeAgo } from "../utils/chats";
+import { Role } from "../types/chats.types";
 
-export const MessageBubble: React.FC<{ role: Role; content: string; createdAt: number }> = ({ role, content, createdAt }) => {
+export const MessageBubble: React.FC<{ role: Role; content: string; createdAt: string }> = ({ role, content, createdAt }) => {
   const isUser = role === "user";
   return (
     <div className={`flex items-start gap-2 ${isUser ? "justify-end" : ""}`}>
@@ -10,7 +10,7 @@ export const MessageBubble: React.FC<{ role: Role; content: string; createdAt: n
         isUser ? "bg-slate-900 text-white rounded-tr-none" : role === "assistant" ? "bg-slate-100 text-slate-900 rounded-tl-none" : "bg-slate-200 text-slate-800 rounded-tl-none"
       }`}>
         {content}
-        <div className={`mt-1 text-[10px] ${isUser ? "text-slate-300" : "text-slate-500"}`}>{timeAgo(createdAt)}</div>
+        <div className={`mt-1 text-[10px] ${isUser ? "text-slate-300" : "text-slate-500"}`}>{createdAt}</div>
       </div>
       {isUser && <Avatar role={role} />}
     </div>

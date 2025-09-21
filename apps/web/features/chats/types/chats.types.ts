@@ -1,18 +1,20 @@
-type Role = "user" | "assistant" | "system";
+export type Role = "user" | "assistant" | "system";
 
 export type Message = {
   id: string;
+  sessionId: string;
   role: Role;
   content: string;
-  createdAt: number; // epoch ms
+  createdAt: string;
 };
 
 export type Chat = {
-  id: string;
+  sessionId: string;
   title: string;
   persona: string; // e.g., PM / Design / Engineer
-  messages: Message[];
-  updatedAt: number;
+  updatedAt: string;
+  firstMessage?: string;
+  messages?: Message[];
 };
 
 export type ChatRequest = {

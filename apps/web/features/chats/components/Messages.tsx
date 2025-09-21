@@ -1,22 +1,24 @@
 import { Avatar } from "@/components/ui/avatar";
 import { MessageBubble } from "./MessageBubble";
+import { Chat } from "../types/chats.types";
 
 export const Messages: React.FC<{
   streamRef: React.RefObject<HTMLDivElement | null>;
   selected: Chat | null;
   isTyping: boolean;
 }> = ({ streamRef, selected, isTyping }) => {
+  const msgs = selected?.messages ?? []; // 常に Message[]
   return (
     <>
       {/* Messages */}
-      <div ref={streamRef} className="flex-1 overflow-y-auto p-4 no-scrollbar">
+      <div ref={streamRef} className="flex-1 overflow-y-auto p-4 no-scrollbar mb-[97.5px]">
         {!selected ? (
           <div className="h-full grid place-items-center text-slate-500">
             チャットを選択してください
           </div>
         ) : (
           <div className="space-y-4">
-            {selected.messages.map((m) => (
+            {msgs.map((m) => (
               <MessageBubble key={m.id} role={m.role} content={m.content} createdAt={m.createdAt} />
             ))}
             {isTyping && (

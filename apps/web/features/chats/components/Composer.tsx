@@ -1,4 +1,5 @@
 import { input } from "framer-motion/client";
+import { Chat } from "../types/chats.types";
 
 export const Composer: React.FC<{
     selected: Chat | null;
@@ -12,7 +13,7 @@ export const Composer: React.FC<{
   return (
     <>
         {/* Composer */}
-        <div className="border-t p-3">
+        <div className="border-t p-3 fixed bottom-0 right-0 bg-white z-10 shadow-lg w-[calc(100%-300px)]">
           <div className="flex items-end gap-2">
             <label htmlFor="composer" className="sr-only">メッセージ</label>
             <textarea

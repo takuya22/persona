@@ -1,3 +1,4 @@
+import { Chat } from "../types/chats.types";
 import { timeAgo } from "../utils/chats";
 
 export const ChatList: React.FC<{
@@ -16,14 +17,14 @@ export const ChatList: React.FC<{
           ) : (
             <ul className="py-2">
             {filtered.map((c) => (
-                <li key={c.id}>
+                <li key={c.sessionId}>
                 <div className="relative group">
                     <button
-                    onClick={() => setSelectedId(c.id)}
+                    onClick={() => setSelectedId(c.sessionId)}
                     className={`w-full text-left px-3 py-2.5 hover:bg-slate-50 ${
-                        selectedId === c.id ? "bg-slate-100" : ""
+                        selectedId === c.sessionId ? "bg-slate-100" : ""
                     }`}
-                    aria-current={selectedId === c.id ? "page" : undefined}
+                    aria-current={selectedId === c.sessionId ? "page" : undefined}
                     >
                     <div className="flex items-center justify-between gap-2">
                         <div className="min-w-0">
@@ -34,13 +35,13 @@ export const ChatList: React.FC<{
                             <input
                             className="bg-transparent text-sm font-medium outline-none min-w-0 w-full focus:ring-1 focus:ring-slate-300 rounded px-1"
                             value={c.title}
-                            onChange={(e) => renameChat(c.id, e.target.value)}
+                            onChange={(e) => renameChat(c.sessionId, e.target.value)}
                             onClick={(e) => e.stopPropagation()}
                             aria-label="チャットタイトルを編集"
                             />
                         </div>
                         <p className="text-xs text-slate-500 truncate mt-0.5">
-                            {c.messages[c.messages.length - 1]?.content || "(メッセージなし)"}
+                            {c.firstMessage || "(メッセージなし)"}
                         </p>
                         </div>
                         <span className="text-[11px] text-slate-400">{timeAgo(c.updatedAt)}</span>
@@ -50,7 +51,7 @@ export const ChatList: React.FC<{
                     className="absolute top-2 right-3 opacity-0 group-hover:opacity-100 text-slate-400 hover:text-slate-700"
                     onClick={(e) => {
                         e.stopPropagation();
-                        if (confirm("このチャットを削除しますか？")) removeChat(c.id);
+                        if (confirm("このチャットを削除しますか？")) removeChat(c.sessionId);
                     }}
                     aria-label="チャットを削除"
                     >

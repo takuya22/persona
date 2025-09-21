@@ -24,7 +24,6 @@ export async function POST(req: NextRequest) {
     firstMessage: firstMessage || "Hello, how can I help you?",
   }
 
-  try {
     const supabase = await createClient();
     const result = await supabase.from("chats").insert({
       session_id: body.sessionId,
@@ -34,10 +33,11 @@ export async function POST(req: NextRequest) {
       updated_at: new Date().toISOString(),
     })
     console.log("Insert result:", result);
-  } catch (error) {
-    console.error("Error inserting chat:", error)
-    return new Response("Internal Server Error", { status: 500 })
-  }
+
+    if (result.error) {
+      console.error("Error inserting chat:", result.error);
+      return new Response("Internal Server Error", { status: 500 });
+    }
 
   return new Response(JSON.stringify({ message: "Chat created" }), {
     status: 200,
@@ -72,4 +72,71 @@ export async function GET(req: NextRequest) {
     console.error("Error fetching chats:", error);
     return new Response("Internal Server Error", { status: 500 });
   }
+}
+
+export async function DELETE(req: NextRequest) {
+  const session = await auth()
+  if (!session) {
+    return new Response("Unauthorized", { status: 401 })
+  }
+
+  const { searchParams } = new URL(req.url)
+  const sessionId = searchParams.get("sessionId")
+
+  if (!sessionId) {
+    return new Response("Bad Request: Missing sessionId", { status: 400 })
+  }
+
+    const supabase = await createClient();
+    const result = await supabase
+      .from("chats")
+      .delete()
+      .eq("session_id", sessionId)
+      .eq("user_id", session.user?.id!);
+
+    if (result.error) {
+      console.error("Error deleting chat:", result.error);
+      return new Response("Internal Server Error", { status: 500 });
+    }
+
+  return new Response(JSON.stringify({ message: "Chat deleted" }), {
+    status: 200,
+    headers: { "Content-Type": "application/json" },
+  })
+}
+
+export async function PUT(req: NextRequest) {
+  const session = await auth()
+  if (!session) {
+    return new Response("Unauthorized", { status: 401 })
+  }
+
+  const { searchParams } = new URL(req.url)
+  const sessionId = searchParams.get("sessionId")
+
+  if (!sessionId) {
+    return new Response("Bad Request: Missing sessionId", { status: 400 })
+  }
+
+  const { title } = await req.json()
+  if (typeof title !== "string" || title.trim().length === 0) {
+    return new Response("Bad Request: Invalid title", { status: 400 })
+  }
+
+    const supabase = await createClient();
+    const result = await supabase
+      .from("chats")
+      .update({ title, updated_at: new Date().toISOString() })
+      .eq("session_id", sessionId)
+      .eq("user_id", session.user?.id!);
+
+    if (result.error) {
+      console.error("Error updating chat title:", result.error);
+      return new Response("Internal Server Error", { status: 500 });
+    }
+
+  return new Response(JSON.stringify({ message: "Chat title updated" }), {
+    status: 200,
+    headers: { "Content-Type": "application/json" },
+  })
 }

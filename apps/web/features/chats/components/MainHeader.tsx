@@ -2,8 +2,9 @@ import { Chat } from "../types/chats.types"
 
 export const MainHeader: React.FC<{
   selected: Chat | null,
-  switchPersona: (persona: string) => void
-}> = ({ selected, switchPersona }) => {
+  // switchPersona: (persona: string) => void
+// }> = ({ selected, switchPersona }) => {
+}> = ({ selected }) => {
   return (
     <>
         {/* Header */}
@@ -15,7 +16,7 @@ export const MainHeader: React.FC<{
             <h2 className="text-sm font-semibold truncate">{selected?.title || "チャット未選択"}</h2>
           </div>
           {/* Persona switcher */}
-          {selected && (
+          {/* {selected && (
             <div className="flex items-center gap-2">
                 {(["PM", "Design", "Engineer", "Marketing", "Sales", "HR"] as const).map((p) => (
                 <button
@@ -30,7 +31,7 @@ export const MainHeader: React.FC<{
                 </button>
                 ))}
             </div>
-          )}
+          )} */}
         </div>
     </>
   )
