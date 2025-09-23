@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
-import { Search, Send, Sparkles, Mic, Plus, PlayCircle, ChevronRight } from "lucide-react";
+import { Plus, PlayCircle, ChevronRight } from "lucide-react";
 import {
   Card,
   CardHeader,
@@ -10,18 +10,11 @@ import {
   CardDescription,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { createSession } from "@/features/session/apis/session";
-import { useRouter } from "next/navigation";
-import { saveStartChat } from "@/features/chats/utils/chats";
-import SignIn from "@/features/auth/components/SignIn";
 import { SessionProvider } from "next-auth/react";
-import { SignOut } from "@/features/auth/components/SignOut";
 import { Header } from "@/features/top/components/Header";
+import { Composer } from "@/features/top/components/Composer";
 
 /**
  * Persona Interview – Simple TOP
@@ -53,13 +46,7 @@ const suggestions = [
 export default function Page() {
   const [query, setQuery] = useState("");
   const [activePersona, setActivePersona] = useState<string | null>(null);
-  const router = useRouter();
   const buttonRef = useRef<HTMLButtonElement>(null);
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    saveStartChat(query);
-    router.push('/chats');
-  };
 
   // Ctrl+Enter で開始ボタンを押す
   useEffect(() => {
@@ -101,68 +88,7 @@ export default function Page() {
           </p>
         </div>
 
-        {/* Composer */}
-        <Card className="mt-8 rounded-2xl shadow-sm">
-          <CardContent className="p-3 sm:p-4 md:p-6">
-            <div className="flex items-start gap-3">
-              <Avatar className="mt-1 size-9">
-                <AvatarImage alt="persona" />
-                <AvatarFallback className="bg-slate-100">AI</AvatarFallback>
-              </Avatar>
-              <div className="flex-1">
-                <div className="flex items-center gap-2">
-                  <Tabs defaultValue="prompt" className="w-full">
-                    <TabsList className="grid w-full grid-cols-2">
-                      <TabsTrigger value="prompt">プロンプト</TabsTrigger>
-                      <TabsTrigger value="brief">調査ブリーフ</TabsTrigger>
-                    </TabsList>
-                    <TabsContent value="prompt" className="mt-3">
-                      <div className="relative">
-                        <Textarea
-                          placeholder="ここに質問や課題を書いて、会話を始めましょう…"
-                          value={query}
-                          onChange={(e) => setQuery(e.target.value)}
-                          className="min-h-24 resize-none rounded-2xl pr-24"
-                        />
-                        <div className="absolute right-2 bottom-2 flex items-center gap-2">
-                          <Button
-                            size="sm"
-                            className="rounded-2xl"
-                            onClick={handleSubmit}
-                            disabled={!query.trim()}
-                            ref={buttonRef}
-                          >
-                            <Send className="mr-1 size-4" /> 開始
-                          </Button>
-                        </div>
-                      </div>
-                    </TabsContent>
-                    <TabsContent value="brief" className="mt-3">
-                      <div className="grid gap-3 md:grid-cols-2">
-                        <Input placeholder="目的（例：継続率改善の仮説検証）" />
-                        <Input placeholder="対象（例：Z世代／ライトユーザー）" />
-                        <Input placeholder="シナリオ（例：初回オンボーディング）" />
-                        <Input placeholder="KPI（例：Day7継続率 +5%）" />
-                      </div>
-                      <div className="flex justify-end mt-3">
-                        <Button className="rounded-2xl"><Sparkles className="mr-1 size-4"/> ブリーフから面接設計</Button>
-                      </div>
-                    </TabsContent>
-                  </Tabs>
-                </div>
-
-                {/* Quick suggestions */}
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {suggestions.map((s, i) => (
-                    <Button key={i} variant="secondary" size="sm" className="rounded-full">
-                      <Search className="mr-1 size-4" />{s}
-                    </Button>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        <Composer query={query} setQuery={setQuery} buttonRef={buttonRef} suggestions={suggestions} />
       </section>
 
       {/* Personas */}

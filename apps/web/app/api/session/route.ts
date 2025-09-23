@@ -1,8 +1,7 @@
 import { auth } from "@/app/auth"
 import { getAccessToken } from "@/lib/gcp/auth"
-import { NextRequest } from "next/server"
 
-export async function POST(req: NextRequest) {
+export async function POST() {
 	const session = await auth()
 	console.log("Session:", session)
 	if (!session) {

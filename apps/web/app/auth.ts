@@ -16,11 +16,11 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       }
       return token
     },
-    async session({ session, token, user }) {
+    async session({ session, token }) {
       if (token.googleId) {
         session.user.id = token.googleId as string
       }
-      // console.log("Session callback:", { session, token, user })
+      // console.log("Session callback:", { session, token })
       return session
     }
   }

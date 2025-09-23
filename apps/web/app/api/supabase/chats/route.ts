@@ -19,7 +19,7 @@ export async function POST(req: NextRequest) {
 
   const body: PostChatRequest = {
     sessionId: sessionId,
-    userId: session.user?.id!,
+    userId: session.user!.id!,
     title: title || "New Chat",
     firstMessage: firstMessage || "Hello, how can I help you?",
   }
@@ -45,7 +45,7 @@ export async function POST(req: NextRequest) {
   })
 }
 
-export async function GET(req: NextRequest) {
+export async function GET() {
   const session = await auth()
   if (!session) {
     return new Response("Unauthorized", { status: 401 })
@@ -56,7 +56,7 @@ export async function GET(req: NextRequest) {
     const { data, error } = await supabase
       .from("chats")
       .select("*")
-      .eq("user_id", session.user?.id!)
+      .eq("user_id", session.user!.id!)
       .order("updated_at", { ascending: false });
 
     if (error) {
@@ -92,7 +92,7 @@ export async function DELETE(req: NextRequest) {
       .from("chats")
       .delete()
       .eq("session_id", sessionId)
-      .eq("user_id", session.user?.id!);
+      .eq("user_id", session.user!.id!);
 
     if (result.error) {
       console.error("Error deleting chat:", result.error);
@@ -128,7 +128,7 @@ export async function PUT(req: NextRequest) {
       .from("chats")
       .update({ title, updated_at: new Date().toISOString() })
       .eq("session_id", sessionId)
-      .eq("user_id", session.user?.id!);
+      .eq("user_id", session.user!.id!);
 
     if (result.error) {
       console.error("Error updating chat title:", result.error);

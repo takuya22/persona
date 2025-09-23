@@ -5,7 +5,7 @@ import ChatPage from "@/features/chats/pages/ChatPage";
 // features/chats/apis/chats.server.ts (サーバー専用)
 import { headers } from "next/headers";
 
-export async function fetchChats() {
+async function fetchChats() {
   const h = headers();
   const cookie = (await h).get("cookie") ?? "";
   const res = await fetch(`${process.env.WEB_BASE_URL}/api/supabase/chats`, {

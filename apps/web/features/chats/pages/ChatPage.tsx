@@ -9,7 +9,7 @@ import { MainHeader } from "@/features/chats/components/MainHeader";
 import { Messages } from "@/features/chats/components/Messages";
 import { SideHeader } from "@/features/chats/components/SideHeader";
 import { AIResponseData, Chat, Message } from "@/features/chats/types/chats.types";
-import { deleteStartChat, loadStartChat, now, saveChats, timeAgo, uid } from "@/features/chats/utils/chats";
+import { deleteStartChat, loadStartChat, saveChats, uid } from "@/features/chats/utils/chats";
 import { createSession } from "@/features/session/apis/session";
 import dayjs from "dayjs";
 import ja from 'dayjs/locale/ja';
@@ -383,7 +383,7 @@ export default function ChatPage({ initialChats }: Props) {
           setIsSending(false);
         }
       );
-    } catch (error) {
+    } catch (error: any) {
       console.error('Chat error:', error);
       
       // エラーメッセージも新しいメッセージとして追加
@@ -397,7 +397,7 @@ export default function ChatPage({ initialChats }: Props) {
       
       setChats((prev) =>
         prev.map((c) => 
-          c.id === chatId 
+          c.sessionId === chatId 
             ? {
                 ...c,
                 messages: [...c.messages ?? [], errorMsg], // エラーメッセージも新規追加
@@ -551,12 +551,13 @@ export default function ChatPage({ initialChats }: Props) {
           setIsSending(false);
         }
       );
-    } catch (error) {
+    } catch (error: any) {
       console.error('Chat error:', error);
       
       // エラーメッセージも新しいメッセージとして追加
       const errorMsg: Message = {
         id: uid(),
+        sessionId: currentSessionId,
         role: "assistant",
         content: `エラーが発生しました: ${error.message}`,
         createdAt: dayjs().format()

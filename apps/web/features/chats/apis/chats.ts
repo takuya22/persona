@@ -53,7 +53,7 @@ export const fetchChats = async (): Promise<FetchChatsResponse[]> => {
   
   const raw = await res.json();
   const rows = Array.isArray(raw) ? raw : raw?.data ?? [];
-  const mapped = rows.map((r): FetchChatsResponse => ({
+  const mapped = rows.map((r: { id: any; session_id: any; title: any; first_message: any; updated_at: string | number | Date; }): FetchChatsResponse => ({
     id: String(r.id),
     session_id: r.session_id,
     title: r.title ?? "",

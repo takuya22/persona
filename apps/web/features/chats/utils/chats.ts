@@ -50,29 +50,3 @@ export const deleteStartChat = (): void => {
   localStorage.removeItem(START_CHAT_KEY)
   return
 }
-
-export const defaultSeed = (): Chat[] => {
-  const c1: Chat = {
-    id: uid(),
-    title: "Z世代ライトユーザーの継続率",
-    persona: "PM",
-    updatedAt: now() - 1000 * 60 * 35,
-    messages: [
-      { id: uid(), role: "system", content: "ペルソナ: PM", createdAt: now() - 1000 * 60 * 35 },
-      { id: uid(), role: "user", content: "ライトユーザーの継続率が伸びません。初回体験のボトルネックを探したい。", createdAt: now() - 1000 * 60 * 34 },
-      { id: uid(), role: "assistant", content: "PM視点だと、オンボーディングの最初の３クリックに注目します。現状の主要動線を教えてください。", createdAt: now() - 1000 * 60 * 33 },
-    ],
-  };
-  const c2: Chat = {
-    id: uid(),
-    title: "ABテスト設計の相談",
-    persona: "Design",
-    updatedAt: now() - 1000 * 60 * 120,
-    messages: [
-      { id: uid(), role: "system", content: "ペルソナ: Design", createdAt: now() - 1000 * 60 * 120 },
-      { id: uid(), role: "user", content: "新しいヒーローのコピー、どちらが好まれるか検証したい。", createdAt: now() - 1000 * 60 * 119 },
-      { id: uid(), role: "assistant", content: "ファーストビューの視認性を固定してコピーだけを変えるのが良いです。計測指標は何にしますか？", createdAt: now() - 1000 * 60 * 118 },
-    ],
-  };
-  return [c1, c2];
-};

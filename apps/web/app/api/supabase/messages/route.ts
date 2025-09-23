@@ -2,7 +2,6 @@ import { auth } from "@/app/auth";
 import { createClient } from "@/lib/supabase/server";
 import { nowJstIso } from "@/lib/utils";
 import { NextRequest } from "next/server";
-import { use } from "react";
 
 export interface PostMessageRequest {
   sessionId: string;
@@ -29,7 +28,7 @@ export async function POST(req: NextRequest) {
       session_id: body.sessionId,
       role: body.role,
       content: body.content,
-      user_id: session!.user?.id!,
+      user_id: session!.user!.id!,
       created_at: nowJstIso(),
       updated_at: nowJstIso(),
     })
@@ -63,7 +62,7 @@ export async function GET(req: NextRequest) {
     .from("messages")
     .select("*")
     .eq("session_id", sessionId)
-    .eq("user_id", session!.user?.id!)
+    .eq("user_id", session!.user!.id!)
     .order("created_at", { ascending: true });
 
   if (error) {

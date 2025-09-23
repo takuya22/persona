@@ -1,5 +1,4 @@
 import { Chat } from "../types/chats.types";
-import { timeAgo } from "../utils/chats";
 
 export const ChatList: React.FC<{
   filtered: Chat[],
@@ -44,7 +43,7 @@ export const ChatList: React.FC<{
                             {c.firstMessage || "(メッセージなし)"}
                         </p>
                         </div>
-                        <span className="text-[11px] text-slate-400">{timeAgo(c.updatedAt)}</span>
+                        <span className="text-[11px] text-slate-400">{c.updatedAt}</span>
                     </div>
                     </button>
                     <button

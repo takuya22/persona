@@ -1,8 +1,8 @@
 // apps/web/lib/gcp/auth.ts
 import "server-only";
-import { GoogleAuth } from "google-auth-library";
+import { AuthClient, GoogleAuth } from "google-auth-library";
 
-let _googleClient: any = null;
+let _googleClient: AuthClient | null = null;
 
 export async function getAccessToken(): Promise<string> {
   if (!_googleClient) {
