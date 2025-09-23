@@ -14,7 +14,6 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
-  DialogFooter,
 } from "@/components/ui/dialog";
 import { useState } from "react";
 import SignIn from "@/features/auth/components/SignIn";
@@ -24,7 +23,8 @@ export const Composer: React.FC<{
   setQuery: (q: string) => void;
   buttonRef: React.RefObject<HTMLButtonElement | null>;
   suggestions: string[];
-}> = ({ query, setQuery, buttonRef, suggestions }) => {
+  role?: string;
+}> = ({ query, setQuery, buttonRef, suggestions, role }) => {
   const router = useRouter();
   const { data: session } = useSession();
   const [showLoginModal, setShowLoginModal] = useState(false);
@@ -34,7 +34,7 @@ export const Composer: React.FC<{
       setShowLoginModal(true);
       return;
     }
-    saveStartChat(query);
+    saveStartChat(query, role || "All");
     router.push('/chats');
   };
 
@@ -51,50 +51,31 @@ export const Composer: React.FC<{
             </Avatar>
             <div className="flex-1">
               <div className="flex items-center gap-2">
-                <Tabs defaultValue="prompt" className="w-full">
-                  <TabsList className="grid w-full grid-cols-2">
-                    <TabsTrigger value="prompt">プロンプト</TabsTrigger>
-                    <TabsTrigger value="brief">調査ブリーフ</TabsTrigger>
-                  </TabsList>
-                  <TabsContent value="prompt" className="mt-3">
-                    <div className="relative">
-                      <Textarea
-                        placeholder="ここに質問や課題を書いて、会話を始めましょう…"
-                        value={query}
-                        onChange={(e) => setQuery(e.target.value)}
-                        className="min-h-24 resize-none rounded-2xl pr-24"
-                      />
-                      <div className="absolute right-2 bottom-2 flex items-center gap-2">
-                        <Button
-                          size="sm"
-                          className="rounded-2xl"
-                          onClick={handleSubmit}
-                          disabled={!query.trim()}
-                          ref={buttonRef}
-                        >
-                          <Send className="mr-1 size-4" /> 開始
-                        </Button>
-                      </div>
-                    </div>
-                  </TabsContent>
-                  <TabsContent value="brief" className="mt-3">
-                    <div className="grid gap-3 md:grid-cols-2">
-                      <Input placeholder="目的（例：継続率改善の仮説検証）" />
-                      <Input placeholder="対象（例：Z世代／ライトユーザー）" />
-                      <Input placeholder="シナリオ（例：初回オンボーディング）" />
-                      <Input placeholder="KPI（例：Day7継続率 +5%）" />
-                    </div>
-                    <div className="flex justify-end mt-3">
-                      <Button className="rounded-2xl"><Sparkles className="mr-1 size-4"/> ブリーフから面接設計</Button>
-                    </div>
-                  </TabsContent>
-                </Tabs>
+                <div className="relative w-full">
+                  <Textarea
+                    placeholder="ここに質問や課題を書いて、会話を始めましょう…"
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    className="min-h-24 resize-none rounded-2xl pr-24"
+                  />
+                  <div className="absolute right-2 bottom-2 flex items-center gap-2">
+                    <Button
+                      size="sm"
+                      className="rounded-2xl cursor-pointer"
+                      onClick={handleSubmit}
+                      disabled={!query.trim()}
+                      ref={buttonRef}
+                    >
+                      <Send className="mr-1 size-4" /> 開始
+                    </Button>
+                  </div>
+                </div>
               </div>
 
               {/* Quick suggestions */}
               <div className="mt-3 flex flex-wrap gap-2">
                 {suggestions.map((s, i) => (
-                  <Button key={i} variant="secondary" size="sm" className="rounded-full">
+                  <Button key={i} variant="secondary" size="sm" className="rounded-full cursor-pointer" onClick={() => setQuery(s)}>
                     <Search className="mr-1 size-4" />{s}
                   </Button>
                 ))}

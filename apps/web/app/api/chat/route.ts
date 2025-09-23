@@ -2,6 +2,7 @@
 import { NextRequest } from "next/server"
 import { getAccessToken } from "@/lib/gcp/auth"
 import { auth } from "@/app/auth"
+import { getAgentUrlByRole } from "@/lib/getAgentUrl"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -12,7 +13,7 @@ export async function POST(req: NextRequest) {
     return new Response("Unauthorized", { status: 401 })
   }
 
-  const { sessionId, newMessage } = await req.json()
+  const { sessionId, newMessage, role } = await req.json()
   const text = newMessage?.parts?.[0]?.text ?? ""
   const sid = sessionId || crypto.randomUUID()
   const token = await getAccessToken()
@@ -25,7 +26,7 @@ export async function POST(req: NextRequest) {
     return new Response("No input text", { status: 400 })
   }
 
-  const url = process.env.VERTEX_AI_STREAM_QUERY_API_URL!
+  const url = `https://us-central1-aiplatform.googleapis.com/v1/projects/${process.env.GCP_PROJECT_ID}/locations/us-central1/reasoningEngines/${getAgentUrlByRole(role)}:streamQuery?alt=sse`
   const body = {
     class_method: "async_stream_query",
     input: { user_id: session.user?.id, session_id: sid, message: text },

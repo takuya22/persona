@@ -47,8 +47,8 @@ export default function ChatPage({ initialChats }: Props) {
   // 初回マウント時にDBから読み込む
   useEffect(() => {
     const startChat = typeof window !== "undefined" ? loadStartChat() : "";
-    if (startChat.length > 0) {
-      startSend(startChat);
+    if (startChat && startChat.input.length > 0) {
+      startSend(startChat.input, startChat.role);
       deleteStartChat();
     }
   }, []);
@@ -92,13 +92,14 @@ export default function ChatPage({ initialChats }: Props) {
   // }, [selected?.messages.length, isTyping]);
 
   // Handlers
-  const createChat = (sessionId: string, input: string): string => {
+  const createChat = (sessionId: string, input: string, role: string): string => {
 
     const userMsg: Message = { id: uid(), sessionId: sessionId, role: "user", content: input, createdAt: dayjs().format() };
     saveChat2({
       sessionId: sessionId,
       title: "新しいチャット",
       firstMessage: input.trim(),
+      role: role,
     });
     saveMessage({
       sessionId: sessionId,
@@ -110,7 +111,7 @@ export default function ChatPage({ initialChats }: Props) {
     const next = [{
         sessionId: sessionId,
         title: "新しいチャット",
-        persona: "PM",
+        role: role,
         firstMessage: input,
         updatedAt: dayjs().format(),
         messages: [userMsg],
@@ -304,7 +305,7 @@ export default function ChatPage({ initialChats }: Props) {
     setChats(prev => [{
         sessionId: newSessionId,
         title: "新しいチャット",
-        persona: "PM",
+        role: "all",
         firstMessage: input,
         updatedAt: dayjs().format(),
         messages: [],
@@ -312,18 +313,18 @@ export default function ChatPage({ initialChats }: Props) {
     setSelectedId(newSessionId);
   };
 
-  const startSend = async (input: string) => {
+  const startSend = async (input: string, role: string) => {
     if (!input.trim()) return;
     setInput("");
     setIsSending(true);
     setIsTyping(true);
     
     // Simulate assistant typing
-    const session = await createSession();
-    const chatId = createChat(session.output.id, input.trim());
+    const session = await createSession(role);
+    const chatId = createChat(session.output.id, input.trim(), role);
 
     try {
-      const stream = await postChat({ sessionId: session.output.id, newMessage: { parts: [ { text: input.trim() } ] } });
+      const stream = await postChat({ sessionId: session.output.id, role: role, newMessage: { parts: [ { text: input.trim() } ] } });
 
       let authorCount = new Set();
       let reviewerCount = 0;
@@ -422,11 +423,12 @@ export default function ChatPage({ initialChats }: Props) {
     setIsTyping(true);
     console.log("Selected chat:", selected);
     let currentSessionId = selected.sessionId;
+    const currentRole = selected.role;
 
     // 新しいチャットの場合はセッションを作成してチャットのsessionIdを更新
     if (selected.sessionId.includes("newChat")) {
       console.log("Creating new session for new chat...");
-      const session = await createSession();
+      const session = await createSession(currentRole);
       currentSessionId = session.output.id;
 
       // チャットのsessionIdを更新
@@ -444,6 +446,7 @@ export default function ChatPage({ initialChats }: Props) {
         sessionId: currentSessionId,
         title: selected.title,
         firstMessage: input.trim(),
+        role: currentRole,
       });
     }
 
@@ -479,19 +482,12 @@ export default function ChatPage({ initialChats }: Props) {
       createdAt: dayjs().format(),
     } as Message);
 
-    // console.log("User message:", userMsg);
-    // setChats((prev) =>
-    //   prev.map((c) => (c.sessionId === selected.sessionId ? { ...c, firstMessage: input, messages: [...c.messages ?? [], userMsg], updatedAt: dayjs().format() } : c))
-    // );
-    // chats.find(c => c.sessionId === selected.sessionId)!.messages?.push(userMsg); // 即時反映用
-    // console.log("Updated chats after adding user message:", chats);
-
     try {
       console.log("Creating session...");
       console.log(currentSessionId);
       console.log(input.trim());
       console.log(chats);
-      const stream = await postChat({ sessionId: currentSessionId, newMessage: { parts: [ { text: input.trim() } ] } });
+      const stream = await postChat({ sessionId: currentSessionId, role: currentRole, newMessage: { parts: [ { text: input.trim() } ] } });
 
       let authorCount = new Set();
       let reviewerCount = 0;
@@ -586,14 +582,6 @@ export default function ChatPage({ initialChats }: Props) {
       send();
     }
   };
-
-  // Filter chats in sidebar
-  // const filtered = chats.filter((c) =>
-  //   [c.title, c.persona, ...((c.messages ?? []).slice(-3).map((m) => m.content))].some((s) =>
-  //     String(s).toLowerCase().includes(sidebarQuery.toLowerCase())
-  //   )
-  // );
-  // ...existing code...
   
 // filteredの計算部分をデバッグ版に置き換え
 const filtered = useMemo(() => {
@@ -609,7 +597,7 @@ const filtered = useMemo(() => {
   const result = chats.filter((c, index) => {
     const searchableFields = [
       c.title,
-      c.persona,
+      c.role,
       c.firstMessage,
       ...((c.messages ?? []).map((m) => m.content)),
     ];
@@ -630,7 +618,7 @@ const filtered = useMemo(() => {
   return (
     <div className="h-screen w-full grid grid-cols-[280px_1fr] bg-white text-slate-900 md:grid-cols-[300px_1fr]">
       {/* Sidebar */}
-      <aside className="border-r flex flex-col min-w-0">
+      <aside className="border-r flex flex-col min-w-0 min-h-0">
         <SideHeader createChat={newChat} />
         <ChatSearchBox sidebarQuery={sidebarQuery} setSidebarQuery={setSidebarQuery} />
         <ChatList filtered={filtered} selectedId={selectedId} setSelectedId={setSelectedId} renameChat={renameChat} removeChat={removeChat} />
@@ -638,7 +626,7 @@ const filtered = useMemo(() => {
       </aside>
 
       {/* Main */}
-      <section className="flex flex-col min-w-0">
+      <section className="flex flex-col min-w-0 min-h-0">
         {/* <MainHeader selected={selected} switchPersona={switchPersona} /> */}
         <MainHeader selected={selected} />
         <Messages streamRef={streamRef} selected={selected} isTyping={isTyping} />

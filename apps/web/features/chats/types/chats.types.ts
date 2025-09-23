@@ -11,7 +11,7 @@ export type Message = {
 export type Chat = {
   sessionId: string;
   title: string;
-  persona: string; // e.g., PM / Design / Engineer
+  role: string; // e.g., PM / Design / Engineer
   updatedAt: string;
   firstMessage?: string;
   messages?: Message[];
@@ -19,6 +19,7 @@ export type Chat = {
 
 export type ChatRequest = {
   sessionId?: string;
+  role: string;
   newMessage: {
     parts: { text: string }[];
   };
@@ -28,6 +29,7 @@ export type SaveChatRequest = {
   sessionId: string;
   title: string;
   firstMessage: string;
+  role: string;
 };
 
 export type FetchChatsResponse = {

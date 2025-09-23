@@ -18,6 +18,7 @@ async function fetchChats() {
     session_id: string;
     title: string;
     first_message: string;
+    role: string;
     updated_at: string;
   }>;
 }
@@ -27,7 +28,7 @@ export default async function Page() {
   const initialChats = (fetched ?? []).map((c) => ({
     sessionId: c.session_id,
     title: c.title,
-    persona: "PM",
+    role: c.role,
     firstMessage: c.first_message,
     updatedAt: c.updated_at,
     messages: [],

@@ -1,3 +1,4 @@
+import { getPersonaRoleById } from "@/app/page";
 import { Chat } from "../types/chats.types";
 
 export const ChatList: React.FC<{
@@ -10,7 +11,7 @@ export const ChatList: React.FC<{
   return (
     <>
         {/* Chat list */}
-        <div className="flex-1 overflow-y-auto no-scrollbar">
+        <div className="flex-1 min-h-0 overflow-y-auto no-scrollbar">
           {filtered.length === 0 ? (
             <p className="text-sm text-slate-500 p-4">該当するチャットがありません。</p>
           ) : (
@@ -29,7 +30,7 @@ export const ChatList: React.FC<{
                         <div className="min-w-0">
                         <div className="flex items-center gap-2">
                             <span className="inline-flex items-center px-1.5 h-5 rounded-full border border-slate-200 text-[11px] text-slate-600">
-                            {c.persona}
+                            {getPersonaRoleById(c.role)}
                             </span>
                             <input
                             className="bg-transparent text-sm font-medium outline-none min-w-0 w-full focus:ring-1 focus:ring-slate-300 rounded px-1"
@@ -43,7 +44,15 @@ export const ChatList: React.FC<{
                             {c.firstMessage || "(メッセージなし)"}
                         </p>
                         </div>
-                        <span className="text-[11px] text-slate-400">{c.updatedAt}</span>
+                        <span className="text-[11px] text-slate-400">
+                          {c.updatedAt ? (() => {
+                          const d = new Date(c.updatedAt);
+                          if (isNaN(d.getTime())) return c.updatedAt;
+                          const m = String(d.getMonth() + 1).padStart(2, "0");
+                          const day = String(d.getDate()).padStart(2, "0");
+                          return `${m}/${day}`;
+                          })() : ""}
+                        </span>
                     </div>
                     </button>
                     <button

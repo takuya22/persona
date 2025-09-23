@@ -1,11 +1,15 @@
+import { useRouter } from "next/navigation";
+
 export const SideHeader: React.FC<{
   createChat: () => Promise<void>;
 }> = ({ createChat }) => {
+  const router = useRouter();
   return (
     <>
       {/* Brand + New Chat */}
-      <div className="h-14 px-3 border-b flex items-center justify-between">
-        <div className="flex items-center gap-2">
+    <div className="sticky top-0 z-10 bg-white">
+      <div className="w-[299px] h-14 px-3 border-b flex items-center justify-between">
+        <div className="flex items-center gap-2 cursor-pointer" onClick={() => router.push('/')} role="button">
           <div className="size-7 rounded-xl bg-slate-900 text-white grid place-items-center text-xs font-bold">Pi</div>
           <span className="text-sm font-semibold">Persona Interview</span>
         </div>
@@ -17,6 +21,7 @@ export const SideHeader: React.FC<{
           新規
         </button>
       </div>
+    </div>
     </>
   )
 }

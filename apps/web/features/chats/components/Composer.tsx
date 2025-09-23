@@ -1,5 +1,6 @@
 import { input } from "framer-motion/client";
 import { Chat } from "../types/chats.types";
+import { getPersonaRoleById } from "@/app/page";
 
 export const Composer: React.FC<{
     selected: Chat | null;
@@ -13,14 +14,14 @@ export const Composer: React.FC<{
   return (
     <>
         {/* Composer */}
-        <div className="border-t p-3 fixed bottom-0 right-0 bg-white z-10 shadow-lg w-[calc(100%-300px)]">
+        <div className="sticky border-t p-3 bottom-0 right-0 bg-white z-10 shadow-lg">
           <div className="flex items-end gap-2">
             <label htmlFor="composer" className="sr-only">メッセージ</label>
             <textarea
               id="composer"
               ref={inputRef}
               className="flex-1 min-h-[44px] max-h-[160px] rounded-2xl border border-slate-200 px-4 py-3 text-base outline-none focus:ring-2 focus:ring-slate-900 resize-none"
-              placeholder={selected ? `@${selected.persona} に質問を書いて…` : "チャットを選択または作成してください"}
+              placeholder={selected ? `@${getPersonaRoleById(selected.role)} に質問を書いて…` : "チャットを選択または作成してください"}
               value={input}
               onChange={(e) => {
                 setInput(e.target.value);

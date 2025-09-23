@@ -32,17 +32,17 @@ export const saveChats = (chats: Chat[]) => {
 
 const START_CHAT_KEY = "persona-start-chat"
 
-export const saveStartChat = (input: string) => {
-  localStorage.setItem(START_CHAT_KEY, input);
+export const saveStartChat = (input: string, role: string) => {
+  localStorage.setItem(START_CHAT_KEY, JSON.stringify({ input, role }));
 }
 
-export const loadStartChat = (): string => {
+export const loadStartChat = (): { input: string; role: string } | null => {
   try {
     const text = localStorage.getItem(START_CHAT_KEY);
-    if (!text) return ""
-    return text;
+    if (!text) return null;
+    return JSON.parse(text);
   } catch {
-    return ""
+    return null;
   }
 }
 

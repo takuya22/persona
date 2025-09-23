@@ -19,9 +19,12 @@ export const Header: React.FC<{
             <Badge variant="secondary" className="ml-2">Beta</Badge>
           </div>
           <nav className="hidden md:flex items-center gap-6 text-sm text-slate-600">
+            {session && (
+              <a href="/chats" className="hover:text-slate-900">Chats</a>
+            )}
+            <a href="#groups" className="hover:text-slate-900">Groups</a>
             <a href="#personas" className="hover:text-slate-900">Personas</a>
             <a href="#features" className="hover:text-slate-900">Features</a>
-            <a href="#how" className="hover:text-slate-900">How it works</a>
           </nav>
           <div className="flex items-center gap-2">
             {/* <Button variant="ghost" className="hidden sm:inline-flex">ログイン</Button> */}

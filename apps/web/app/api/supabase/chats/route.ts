@@ -7,6 +7,7 @@ export interface PostChatRequest {
   userId: string;
   title: string;
   firstMessage: string;
+  role: string;
 }
 
 export async function POST(req: NextRequest) {
@@ -15,13 +16,14 @@ export async function POST(req: NextRequest) {
     return new Response("Unauthorized", { status: 401 })
   }
 
-  const { sessionId, title, firstMessage } = await req.json()
+  const { sessionId, title, firstMessage, role } = await req.json()
 
   const body: PostChatRequest = {
     sessionId: sessionId,
     userId: session.user!.id!,
     title: title || "New Chat",
     firstMessage: firstMessage || "Hello, how can I help you?",
+    role: role || "all",
   }
 
     const supabase = await createClient();
@@ -30,6 +32,7 @@ export async function POST(req: NextRequest) {
       user_id: body.userId,
       title: body.title,
       first_message: body.firstMessage,
+      role: body.role,
       updated_at: new Date().toISOString(),
     })
     console.log("Insert result:", result);
