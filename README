@@ -1,0 +1,23 @@
+
+## 主要ファイル
+- 各エージェント定義: [`apps/agent/persona_agent/agent.py`](apps/agent/persona_agent/agent.py) の [`root_agent`](apps/agent/persona_agent/agent.py)
+- エージェントデプロイ: [`apps/agent/persona_agent/deploy_to_agent_engine.py`](apps/agent/persona_agent/deploy_to_agent_engine.py)
+- Web チャットページ: [`apps/web/features/chats/pages/ChatPage.tsx`](apps/web/features/chats/pages/ChatPage.tsx)
+- Next.js 説明: [`apps/web/README.md`](apps/web/README.md)
+- 他エージェント:
+  - [`apps/agent/hr_agent/agent.py`](apps/agent/hr_agent/agent.py)
+  - [`apps/agent/hr_agent/agent.py`](apps/agent/hr_agent/agent.py)
+  - [`apps/agent/pm_agent/agent.py`](apps/agent/pm_agent/agent.py)
+  - [`apps/agent/marketer_agent/agent.py`](apps/agent/marketer_agent/agent.py)
+  - [`apps/agent/sales_agent/agent.py`](apps/agent/sales_agent/agent.py)
+  - [`apps/agent/designer_agent/agent.py`](apps/agent/designer_agent/agent.py)
+  - [`apps/agent/senior_engineer_agent/agent.py`](apps/agent/senior_engineer_agent/agent.py)
+  - [`apps/agent/persona_group1_interview_agent/agent.py`](apps/agent/persona_group1_interview_agent/agent.py)
+  - [`apps/agent/persona_group2_interview_agent/agent.py`](apps/agent/persona_group2_interview_agent/agent.py)
+  - [`apps/agent/persona_group3_interview_agent/agent.py`](apps/agent/persona_group3_interview_agent/agent.py)
+
+## 技術スタック
+- LLM / 推論: Google Vertex AI (Gemini `gemini-2.0-flash`) + ADK (`google-cloud-aiplatform[adk,agent_engines]`)
+- フロント: Next.js 19
+- 状態: ローカルストレージ + API 連携（チャット / メッセージ保存ユーティリティ）
+- パッケージ管理（Web）: pnpm（`pnpm-lock.yaml`）
