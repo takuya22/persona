@@ -19,7 +19,7 @@ export const Messages: React.FC<{
         ) : (
           <div className="space-y-4">
             {msgs.map((m) => (
-              <MessageBubble key={m.id} role={m.role} content={m.content} createdAt={m.createdAt} />
+              <MessageBubble key={m.id} role={m.role} content={m.content} author={m.author} createdAt={m.createdAt} />
             ))}
             {isTyping && (
               <div className="flex items-start gap-2">

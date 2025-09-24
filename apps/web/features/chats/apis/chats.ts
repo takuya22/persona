@@ -6,7 +6,6 @@ import { ChatRequest, FetchChatsResponse, SaveChatRequest } from "@/features/cha
 export const postChat = async (
   args: ChatRequest
 ): Promise<ReadableStream<Uint8Array>> => {
-  console.log("Posting chat with args:", args);
   const res = await fetch("/api/chat", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -35,7 +34,6 @@ export const saveChat2 = async (
     const msg = await res.text().catch(() => res.statusText);
     throw new Error(`Failed to save chat: ${msg}`);
   }
-  console.log("Save chat response:", res);
 
   return res;
 };
@@ -74,8 +72,6 @@ export const deleteChat = async (sessionId: string): Promise<void> => {
     const msg = await res.text().catch(() => res.statusText);
     throw new Error(`Failed to delete chat: ${msg}`);
   }
-  
-  console.log("Delete chat response:", res);
 };
 
 export const updateChatTitle = async (sessionId: string, title: string): Promise<void> => {
@@ -89,6 +85,4 @@ export const updateChatTitle = async (sessionId: string, title: string): Promise
     const msg = await res.text().catch(() => res.statusText);
     throw new Error(`Failed to update chat title: ${msg}`);
   }
-  
-  console.log("Update chat title response:", res);
 };

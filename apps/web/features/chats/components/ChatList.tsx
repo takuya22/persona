@@ -1,4 +1,4 @@
-import { getPersonaRoleById } from "@/app/page";
+import { getPersonaRoleById } from "@/features/persona/utils/persona";
 import { Chat } from "../types/chats.types";
 
 export const ChatList: React.FC<{

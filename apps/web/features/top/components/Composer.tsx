@@ -1,10 +1,8 @@
 import { Card, CardContent } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { Search, Send, Sparkles } from "lucide-react";
+import { Search, Send, X } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { saveStartChat } from "@/features/chats/utils/chats";
 import { useRouter } from "next/navigation";
@@ -17,6 +15,8 @@ import {
 } from "@/components/ui/dialog";
 import { useState } from "react";
 import SignIn from "@/features/auth/components/SignIn";
+import { Badge } from "@/components/ui/badge";
+import { getPersonaNameById } from "@/features/persona/utils/persona";
 
 export const Composer: React.FC<{
   query: string;
@@ -24,7 +24,8 @@ export const Composer: React.FC<{
   buttonRef: React.RefObject<HTMLButtonElement | null>;
   suggestions: string[];
   role?: string;
-}> = ({ query, setQuery, buttonRef, suggestions, role }) => {
+  onClearRole: () => void;
+}> = ({ query, setQuery, buttonRef, suggestions, role, onClearRole }) => {
   const router = useRouter();
   const { data: session } = useSession();
   const [showLoginModal, setShowLoginModal] = useState(false);
@@ -37,7 +38,6 @@ export const Composer: React.FC<{
     saveStartChat(query, role || "All");
     router.push('/chats');
   };
-
 
   return (
     <>
@@ -59,6 +59,36 @@ export const Composer: React.FC<{
                     className="min-h-24 resize-none rounded-2xl pr-24"
                   />
                   <div className="absolute right-2 bottom-2 flex items-center gap-2">
+                    {(!role || role === "all") ? (
+                      <Badge
+                        variant="outline"
+                        className="rounded-full px-2 py-0.5 text-xs font-medium max-w-[140px] truncate"
+                        title="全員に一斉インタビュー"
+                      >
+                        全員に一斉インタビュー
+                      </Badge>
+                    ) : (
+                      <Badge
+                        variant="outline"
+                        className="rounded-full pl-2 pr-1 py-0.5 text-xs font-medium flex items-center gap-1 max-w-[160px]"
+                        title={`選択中: ${getPersonaNameById(role)}`}
+                      >
+                        <span className="">{getPersonaNameById(role)}</span>
+                        {onClearRole && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onClearRole();
+                            }}
+                            aria-label="選択を解除"
+                            className="inline-flex items-center justify-center rounded-full hover:bg-muted/70 transition p-0.5"
+                          >
+                            <X className="size-3" />
+                          </button>
+                        )}
+                      </Badge>
+                    )}
                     <Button
                       size="sm"
                       className="rounded-2xl cursor-pointer"

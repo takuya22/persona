@@ -5,6 +5,7 @@ export type Message = {
   sessionId: string;
   role: Role;
   content: string;
+  author?: string;
   createdAt: string;
 };
 

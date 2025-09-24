@@ -35,7 +35,6 @@ export async function POST(req: NextRequest) {
       role: body.role,
       updated_at: new Date().toISOString(),
     })
-    console.log("Insert result:", result);
 
     if (result.error) {
       console.error("Error inserting chat:", result.error);

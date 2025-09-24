@@ -1,6 +1,5 @@
-import { input } from "framer-motion/client";
+import { getPersonaNameById, getPersonaRoleById } from "@/features/persona/utils/persona";
 import { Chat } from "../types/chats.types";
-import { getPersonaRoleById } from "@/app/page";
 
 export const Composer: React.FC<{
     selected: Chat | null;
@@ -43,7 +42,7 @@ export const Composer: React.FC<{
           </div>
           <div className="mt-2 text-[11px] text-slate-500 flex items-center justify-between">
             <span>ショートカット: ⌘/Ctrl + Enter で送信</span>
-            {selected && <span>現在のペルソナ: {selected.persona}</span>}
+            {selected && <span>現在のペルソナ: {getPersonaNameById(selected.role)}</span>}
           </div>
         </div>
     </>

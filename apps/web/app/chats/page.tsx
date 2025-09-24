@@ -1,8 +1,4 @@
-// app/chats/page.tsx など（Server Component）
-// import { fetchChats } from "@/features/chats/apis/chats"; // ※サーバーで実行できる実装に
 import ChatPage from "@/features/chats/pages/ChatPage";
-
-// features/chats/apis/chats.server.ts (サーバー専用)
 import { headers } from "next/headers";
 
 async function fetchChats() {

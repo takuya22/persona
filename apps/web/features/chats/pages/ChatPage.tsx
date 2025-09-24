@@ -1,5 +1,5 @@
 "use client";
-import { deleteChat, fetchChats, postChat, saveChat2, updateChatTitle } from "@/features/chats/apis/chats";
+import { deleteChat, postChat, saveChat2, updateChatTitle } from "@/features/chats/apis/chats";
 import { fetchMessages, saveMessage } from "@/features/chats/apis/message";
 import { ChatList } from "@/features/chats/components/ChatList";
 import { ChatSearchBox } from "@/features/chats/components/ChatSearchBox";
@@ -10,6 +10,7 @@ import { Messages } from "@/features/chats/components/Messages";
 import { SideHeader } from "@/features/chats/components/SideHeader";
 import { AIResponseData, Chat, Message } from "@/features/chats/types/chats.types";
 import { deleteStartChat, loadStartChat, saveChats, uid } from "@/features/chats/utils/chats";
+import { groups, personas } from "@/features/persona/types/persona.type";
 import { createSession } from "@/features/session/apis/session";
 import dayjs from "dayjs";
 import ja from 'dayjs/locale/ja';
@@ -39,6 +40,7 @@ export default function ChatPage({ initialChats }: Props) {
   const [isTyping, setIsTyping] = useState(false);
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
   const streamRef = useRef<HTMLDivElement | null>(null);
+  const [showPersonaModal, setShowPersonaModal] = useState(false);
 
   const selected = useMemo(() => chats.find((c) => c.sessionId === selectedId) || null, [chats, selectedId]);
 
@@ -138,37 +140,11 @@ export default function ChatPage({ initialChats }: Props) {
     updateChatTitle(sessionId, title)
   };
 
-  // const switchPersona = (persona: string) => {
-  //   if (!selected) return;
-  //   setChats((prev) =>
-  //     prev.map((c) =>
-  //       c.sessionId === selected.sessionId
-  //         ? {
-  //             ...c,
-  //             persona,
-  //             updatedAt: now(),
-  //             messages: [
-  //               ...c.messages,
-  //               { id: uid(), role: "system", content: `ペルソナ変更: ${persona}`, createdAt: now() },
-  //             ],
-  //           }
-  //         : c
-  //     )
-  //   );
-  // };
 
-  // ユーティリティ: ReadableStreamをテキストとして取得
-  async function streamToText(stream: ReadableStream<Uint8Array>): Promise<string> {
-    const reader = stream.getReader();
-    let result = "";
-    while (true) {
-      const { value, done } = await reader.read();
-      if (done) break;
-      result += new TextDecoder().decode(value);
-      console.log(result);
-    }
-    return result;
-  }
+  // 作者情報の取得
+  const getAuthor = (data: AIResponseData): string => {
+    return data.author || 'AI';
+  };
 
   // データ抽出用のユーティリティ関数
   const extractMessageContent = (data: AIResponseData | string): string => {
@@ -194,17 +170,6 @@ export default function ChatPage({ initialChats }: Props) {
     // ReviewSynthesisAgentの出現で全体完了と判定
     return data.author === 'ReviewSynthesisAgent';
   };
-
-  // 作者情報の取得
-  const getAuthor = (data: AIResponseData): string => {
-    return data.author || 'AI';
-  };
-
-  // トークン使用量の取得
-  const getTokenUsage = (data: AIResponseData): number => {
-    return data.usage_metadata?.total_token_count || 0;
-  };
-
 
   // SSEストリームを解析してリアルタイムでメッセージを更新する関数
   async function processSSEStream(
@@ -254,13 +219,6 @@ export default function ChatPage({ initialChats }: Props) {
                 messageCount++;
                 receivedAuthors.add(data.author);
                 
-                console.log(`📨 Message ${messageCount} from ${data.author}:`, {
-                  branch: data.branch,
-                  content: content.substring(0, 100) + '...',
-                  finishReason: data.finish_reason,
-                  timestamp: data.timestamp
-                });
-                
                 if (content) {
                   onDataReceived(content, data);
                 }
@@ -300,17 +258,22 @@ export default function ChatPage({ initialChats }: Props) {
     }
   }
 
-  const newChat = async () => {
+  const newChat = async (role: string) => {
     const newSessionId = "newChat_" + uid();
     setChats(prev => [{
         sessionId: newSessionId,
         title: "新しいチャット",
-        role: "all",
+        role: role,
         firstMessage: input,
         updatedAt: dayjs().format(),
         messages: [],
     }, ...prev]);
     setSelectedId(newSessionId);
+  };
+
+  const handleSelectPersona = (role: string) => {
+    setShowPersonaModal(false);
+    newChat(role);
   };
 
   const startSend = async (input: string, role: string) => {
@@ -352,6 +315,7 @@ export default function ChatPage({ initialChats }: Props) {
               sessionId: session.output.id,
               role: "assistant", 
               content: content,
+              author: getAuthor(data),
               createdAt: dayjs().format(),
             };
 
@@ -373,13 +337,13 @@ export default function ChatPage({ initialChats }: Props) {
               sessionId: session.output.id,
               role: "assistant",
               content: content,
+              author: getAuthor(data),
               createdAt: dayjs().format(),
             } as Message);
           }
         },
         // ストリーム完了時の処理
         () => {
-          console.log('Stream completed');
           setIsTyping(false);
           setIsSending(false);
         }
@@ -439,9 +403,7 @@ export default function ChatPage({ initialChats }: Props) {
             : c
         )
       );
-      // chats.find(c => c.sessionId === selected.sessionId)!.sessionId = currentSessionId; // 即時反映用
       setSelectedId(currentSessionId);
-      // selected.sessionId = currentSessionId;
       saveChat2({
         sessionId: currentSessionId,
         title: selected.title,
@@ -483,10 +445,6 @@ export default function ChatPage({ initialChats }: Props) {
     } as Message);
 
     try {
-      console.log("Creating session...");
-      console.log(currentSessionId);
-      console.log(input.trim());
-      console.log(chats);
       const stream = await postChat({ sessionId: currentSessionId, role: currentRole, newMessage: { parts: [ { text: input.trim() } ] } });
 
       let authorCount = new Set();
@@ -515,6 +473,7 @@ export default function ChatPage({ initialChats }: Props) {
               sessionId: currentSessionId,
               role: "assistant", 
               content: content,
+              author: getAuthor(data),
               createdAt: dayjs().format(),
             };
 
@@ -536,6 +495,7 @@ export default function ChatPage({ initialChats }: Props) {
               sessionId: currentSessionId,
               role: "assistant",
               content: content,
+              author: getAuthor(data),
               createdAt: dayjs().format(),
             } as Message);
           }
@@ -586,14 +546,10 @@ export default function ChatPage({ initialChats }: Props) {
 // filteredの計算部分をデバッグ版に置き換え
 const filtered = useMemo(() => {
   const q = sidebarQuery.toLowerCase();
-  console.log("🔍 Search query:", q);
-  console.log("📝 Total chats:", chats.length);
-  
   if (!q) {
-    console.log("✅ No query - returning all chats");
     return chats;
   }
-  
+
   const result = chats.filter((c, index) => {
     const searchableFields = [
       c.title,
@@ -612,14 +568,12 @@ const filtered = useMemo(() => {
   });
   return result;
 }, [chats, sidebarQuery]);
-// ...existing code...
-  // console.log("Filtered chats:", filtered, "with query:", sidebarQuery);
 
   return (
     <div className="h-screen w-full grid grid-cols-[280px_1fr] bg-white text-slate-900 md:grid-cols-[300px_1fr]">
       {/* Sidebar */}
       <aside className="border-r flex flex-col min-w-0 min-h-0">
-        <SideHeader createChat={newChat} />
+        <SideHeader openPersonaModal={() => setShowPersonaModal(true)} />
         <ChatSearchBox sidebarQuery={sidebarQuery} setSidebarQuery={setSidebarQuery} />
         <ChatList filtered={filtered} selectedId={selectedId} setSelectedId={setSelectedId} renameChat={renameChat} removeChat={removeChat} />
         <Footer />
@@ -632,6 +586,49 @@ const filtered = useMemo(() => {
         <Messages streamRef={streamRef} selected={selected} isTyping={isTyping} />
         <Composer selected={selected} input={input} inputRef={inputRef} setInput={setInput} onKeyDown={onKeyDown} send={send} isSending={isSending} />
       </section>
+
+
+      {showPersonaModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="bg-white w-full max-w-md rounded-xl shadow-lg p-6">
+            <h2 className="text-lg font-semibold mb-4">ペルソナを選択</h2>
+            <div className="grid gap-3 mb-5">
+              <button
+                onClick={() => handleSelectPersona("all")}
+                className="w-full text-left px-4 py-2 rounded-lg border hover:bg-slate-50 transition text-sm"
+              >
+                全員
+              </button>
+              {groups.map(g => (
+                <button
+                  key={g.id}
+                  onClick={() => handleSelectPersona(g.id)}
+                  className="w-full text-left px-4 py-2 rounded-lg border hover:bg-slate-50 transition text-sm"
+                >
+                  {g.name}
+                </button>
+              ))}
+              {personas.filter((p) => p.id !== "housewife" && p.id !== "retiree" && p.id !== "student" && p.id !== "teen").map((p) => (
+                <button
+                  key={p.id}
+                  onClick={() => handleSelectPersona(p.id)}
+                  className="w-full text-left px-4 py-2 rounded-lg border hover:bg-slate-50 transition text-sm"
+                >
+                  {p.name}
+                </button>
+              ))}
+            </div>
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => setShowPersonaModal(false)}
+                className="px-3 h-9 text-sm rounded-md border hover:bg-slate-50"
+              >
+                キャンセル
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

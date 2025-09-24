@@ -1,8 +1,8 @@
 import { useRouter } from "next/navigation";
 
 export const SideHeader: React.FC<{
-  createChat: () => Promise<void>;
-}> = ({ createChat }) => {
+  openPersonaModal: () => void;
+}> = ({ openPersonaModal }) => {
   const router = useRouter();
   return (
     <>
@@ -15,7 +15,7 @@ export const SideHeader: React.FC<{
         </div>
         <button
           className="text-sm px-2 h-8 rounded-md bg-slate-900 text-white hover:opacity-90"
-          onClick={createChat}
+          onClick={openPersonaModal}
           aria-label="新しいチャットを作成"
         >
           新規

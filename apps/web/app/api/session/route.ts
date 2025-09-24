@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
 	})
 
 	if (!res.ok) {
-		console.log("Request error:", res)
+		console.error("Request error:", res)
 		return new Response("Request error", { status: 502 })
 	}
 	

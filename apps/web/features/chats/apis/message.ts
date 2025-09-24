@@ -21,6 +21,7 @@ export const fetchMessages = async (
     sessionId: item.session_id,
     role: item.role,
     content: item.content,
+    author: item.author,
     createdAt: item.created_at,
   } as Message));
 }

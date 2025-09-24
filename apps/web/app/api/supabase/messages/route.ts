@@ -7,6 +7,7 @@ export interface PostMessageRequest {
   sessionId: string;
   role: string;
   content: string;
+  author?: string;
 }
 
 export async function POST(req: NextRequest) {
@@ -15,12 +16,13 @@ export async function POST(req: NextRequest) {
     return new Response("Unauthorized", { status: 401 })
   }
 
-  const { sessionId, role, content } = await req.json()
+  const { sessionId, role, content, author } = await req.json()
 
   const body: PostMessageRequest = {
     sessionId: sessionId,
     role: role,
     content: content,
+    author: author,
   }
 
     const supabase = await createClient();
@@ -29,10 +31,10 @@ export async function POST(req: NextRequest) {
       role: body.role,
       content: body.content,
       user_id: session!.user!.id!,
+      author: body.author,
       created_at: nowJstIso(),
       updated_at: nowJstIso(),
     })
-    console.log("Insert result:", result);
 
     if (result.error) {
       console.error("Error inserting message:", result.error);
